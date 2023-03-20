@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#define _CRT_NONSTDC_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 
 #include "android-base/test_utils.h"
 
@@ -20,7 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#include <corecrt_io.h>
 
 #include <string>
 
@@ -43,7 +45,9 @@ int CapturedStdFd::fd() const {
 
 std::string CapturedStdFd::str() {
   std::string result;
-  CHECK_EQ(0, TEMP_FAILURE_RETRY(lseek(fd(), 0, SEEK_SET)));
+  long r = 0;
+  TEMP_FAILURE_RETRY( r, lseek( fd(), 0, SEEK_SET ) );
+  CHECK_EQ(0, r);
   android::base::ReadFdToString(fd(), &result);
   return result;
 }
@@ -51,8 +55,8 @@ std::string CapturedStdFd::str() {
 void CapturedStdFd::Reset() {
   // Do not reset while capturing.
   CHECK_EQ(-1, old_fd_);
-  CHECK_EQ(0, TEMP_FAILURE_RETRY(lseek(fd(), 0, SEEK_SET)));
-  CHECK_EQ(0, ftruncate(fd(), 0));
+  long r = 0;
+  TEMP_FAILURE_RETRY( r, lseek( fd(), 0, SEEK_SET ) );
 }
 
 void CapturedStdFd::Start() {

@@ -17,6 +17,7 @@
 #pragma once
 
 #include <string>
+#include <android-base\libbase_export.h>
 
 namespace android {
 namespace base {
@@ -25,7 +26,7 @@ namespace base {
 //
 // Hex values are printed in order, e.g. 0xDEAD will result in 'adde' because
 // Android is little-endian.
-std::string HexString(const void* bytes, size_t len);
+LIBBASE_EXPORT std::string HexString(const void* bytes, size_t len);
 
 }  // namespace base
 }  // namespace android

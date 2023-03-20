@@ -19,6 +19,7 @@
 #ifdef _WIN32
 #include <sys/types.h>
 #include <string>
+#include <corecrt_io.h>
 #else
 // Bring in prototypes for standard APIs so that we can import them into the utf8 namespace.
 #include <fcntl.h>      // open
@@ -27,6 +28,8 @@
 #include <unistd.h>     // unlink
 #endif
 
+#include <android-base\libbase_export.h>
+
 namespace android {
 namespace base {
 
@@ -34,27 +37,27 @@ namespace base {
 #ifdef _WIN32
 // Convert size number of UTF-16 wchar_t's to UTF-8. Returns whether the
 // conversion was done successfully.
-bool WideToUTF8(const wchar_t* utf16, const size_t size, std::string* utf8);
+LIBBASE_EXPORT bool WideToUTF8(const wchar_t* utf16, const size_t size, std::string* utf8);
 
 // Convert a NULL-terminated string of UTF-16 characters to UTF-8. Returns
 // whether the conversion was done successfully.
-bool WideToUTF8(const wchar_t* utf16, std::string* utf8);
+LIBBASE_EXPORT bool WideToUTF8(const wchar_t* utf16, std::string* utf8);
 
 // Convert a UTF-16 std::wstring (including any embedded NULL characters) to
 // UTF-8. Returns whether the conversion was done successfully.
-bool WideToUTF8(const std::wstring& utf16, std::string* utf8);
+LIBBASE_EXPORT bool WideToUTF8(const std::wstring& utf16, std::string* utf8);
 
 // Convert size number of UTF-8 char's to UTF-16. Returns whether the conversion
 // was done successfully.
-bool UTF8ToWide(const char* utf8, const size_t size, std::wstring* utf16);
+LIBBASE_EXPORT bool UTF8ToWide(const char* utf8, const size_t size, std::wstring* utf16);
 
 // Convert a NULL-terminated string of UTF-8 characters to UTF-16. Returns
 // whether the conversion was done successfully.
-bool UTF8ToWide(const char* utf8, std::wstring* utf16);
+LIBBASE_EXPORT bool UTF8ToWide(const char* utf8, std::wstring* utf16);
 
 // Convert a UTF-8 std::string (including any embedded NULL characters) to
 // UTF-16. Returns whether the conversion was done successfully.
-bool UTF8ToWide(const std::string& utf8, std::wstring* utf16);
+LIBBASE_EXPORT bool UTF8ToWide(const std::string& utf8, std::wstring* utf16);
 
 // Convert a file system path, represented as a NULL-terminated string of
 // UTF-8 characters, to a UTF-16 string representing the same file system
@@ -67,7 +70,7 @@ bool UTF8ToWide(const std::string& utf8, std::wstring* utf16);
 //   For example, "\\?\D:\very long path".```
 //
 // Returns whether the conversion was done successfully.
-bool UTF8PathToWindowsLongPath(const char* utf8, std::wstring* utf16);
+LIBBASE_EXPORT bool UTF8PathToWindowsLongPath(const char* utf8, std::wstring* utf16);
 #endif
 
 // The functions in the utf8 namespace take UTF-8 strings. For Windows, these
@@ -88,10 +91,10 @@ bool UTF8PathToWindowsLongPath(const char* utf8, std::wstring* utf16);
 namespace utf8 {
 
 #ifdef _WIN32
-FILE* fopen(const char* name, const char* mode);
-int mkdir(const char* name, mode_t mode);
-int open(const char* name, int flags, ...);
-int unlink(const char* name);
+LIBBASE_EXPORT FILE* fopen(const char* name, const char* mode);
+LIBBASE_EXPORT int mkdir(const char* name, /*mode_t mode*/...);
+LIBBASE_EXPORT int open(const char* name, int flags, ...);
+LIBBASE_EXPORT int unlink(const char* name);
 #else
 using ::fopen;
 using ::mkdir;

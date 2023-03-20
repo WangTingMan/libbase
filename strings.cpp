@@ -24,6 +24,10 @@
 #include <string>
 #include <vector>
 
+#ifndef strncasecmp
+#define strncasecmp _strnicmp
+#endif
+
 // Wraps the posix version of strerror_r to make it available in translation units
 // that define _GNU_SOURCE.
 extern "C" int posix_strerror_r(int errnum, char* buf, size_t buflen);

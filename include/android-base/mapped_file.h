@@ -24,6 +24,8 @@
 #include "android-base/off64_t.h"
 #include "android-base/unique_fd.h"
 
+#include <android-base\libbase_export.h>
+
 #if defined(_WIN32)
 #include <windows.h>
 #define PROT_READ 1
@@ -40,7 +42,7 @@ namespace base {
 /**
  * A region of a file mapped into memory (for grepping: also known as MmapFile or file mapping).
  */
-class MappedFile {
+class LIBBASE_EXPORT MappedFile {
  public:
   /**
    * Creates a new mapping of the file pointed to by `fd`. Unlike the underlying OS primitives,

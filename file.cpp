@@ -13,25 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#define _CRT_NONSTDC_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 
 #include "android-base/file.h"
 
 #include <errno.h>
 #include <fcntl.h>
-#include <ftw.h>
-#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
+
+#ifndef _MSC_VER
+#include <unistd.h> 
+#include <ftw.h>
+#include <libgen.h> 
+#include <sys/param.h>
+#endif
 
 #include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
@@ -39,10 +45,21 @@
 #if defined(_WIN32)
 #include <direct.h>
 #include <windows.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/types.h>
 #define O_NOFOLLOW 0
 #define OS_PATH_SEPARATOR '\\'
 #else
 #define OS_PATH_SEPARATOR '/'
+#endif
+
+#ifndef ssize_t
+#define ssize_t int64_t
+#endif
+
+#ifndef PATH_MAX
+#define PATH_MAX 256
 #endif
 
 #include "android-base/logging.h"  // and must be after windows.h for ERROR
@@ -63,7 +80,7 @@ static int mkstemp(char* name_template, size_t size_in_chars) {
 
   // Use open() to match the close() that TemporaryFile's destructor does.
   // Use O_BINARY to match base file APIs.
-  int fd = _wopen(path.c_str(), O_CREAT | O_EXCL | O_RDWR | O_BINARY, S_IRUSR | S_IWUSR);
+  int fd = _wopen( path.c_str(), O_CREAT | O_EXCL | O_RDWR | O_BINARY, S_IREAD | S_IWRITE );
   if (fd < 0) {
     return -1;
   }
@@ -172,6 +189,7 @@ TemporaryDir::TemporaryDir() {
 TemporaryDir::~TemporaryDir() {
   if (!remove_dir_and_contents_) return;
 
+#ifndef _WIN32
   auto callback = [](const char* child, const struct stat*, int file_type, struct FTW*) -> int {
     switch (file_type) {
       case FTW_D:
@@ -198,6 +216,7 @@ TemporaryDir::~TemporaryDir() {
   };
 
   nftw(path, callback, 128, FTW_DEPTH | FTW_MOUNT | FTW_PHYS);
+#endif
 }
 
 bool TemporaryDir::init(const std::string& tmp_dir) {
@@ -226,10 +245,12 @@ bool ReadFdToString(borrowed_fd fd, std::string* content) {
     content->reserve(sb.st_size);
   }
 
-  char buf[BUFSIZ] __attribute__((__uninitialized__));
+  char buf[BUFSIZ] /*__attribute__((__uninitialized__))*/;
   ssize_t n;
-  while ((n = TEMP_FAILURE_RETRY(read(fd.get(), &buf[0], sizeof(buf)))) > 0) {
-    content->append(buf, n);
+  TEMP_FAILURE_RETRY( n, read( fd.get(), &buf[0], sizeof( buf ) ) );
+  while ( n > 0 ) {
+      content->append( buf, n );
+      TEMP_FAILURE_RETRY( n, read( fd.get(), &buf[0], sizeof( buf ) ) );
   }
   return (n == 0) ? true : false;
 }
@@ -238,7 +259,9 @@ bool ReadFileToString(const std::string& path, std::string* content, bool follow
   content->clear();
 
   int flags = O_RDONLY | O_CLOEXEC | O_BINARY | (follow_symlinks ? 0 : O_NOFOLLOW);
-  android::base::unique_fd fd(TEMP_FAILURE_RETRY(open(path.c_str(), flags)));
+  int ret_fd = 0;
+  TEMP_FAILURE_RETRY( ret_fd, open( path.c_str(), flags ) );
+  android::base::unique_fd fd( ret_fd );
   if (fd == -1) {
     return false;
   }
@@ -249,7 +272,8 @@ bool WriteStringToFd(const std::string& content, borrowed_fd fd) {
   const char* p = content.data();
   size_t left = content.size();
   while (left > 0) {
-    ssize_t n = TEMP_FAILURE_RETRY(write(fd.get(), p, left));
+      ssize_t n = 0;
+      TEMP_FAILURE_RETRY( n, write( fd.get(), p, left ) );
     if (n == -1) {
       return false;
     }
@@ -301,7 +325,9 @@ bool WriteStringToFile(const std::string& content, const std::string& path,
                        bool follow_symlinks) {
   int flags = O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC | O_BINARY |
               (follow_symlinks ? 0 : O_NOFOLLOW);
-  android::base::unique_fd fd(TEMP_FAILURE_RETRY(open(path.c_str(), flags, 0666)));
+  int ret_fd = 0;
+  TEMP_FAILURE_RETRY( ret_fd, open( path.c_str(), flags, 0666 ) );
+  android::base::unique_fd fd( ret_fd );
   if (fd == -1) {
     return false;
   }
@@ -312,7 +338,8 @@ bool ReadFully(borrowed_fd fd, void* data, size_t byte_count) {
   uint8_t* p = reinterpret_cast<uint8_t*>(data);
   size_t remaining = byte_count;
   while (remaining > 0) {
-    ssize_t n = TEMP_FAILURE_RETRY(read(fd.get(), p, remaining));
+      ssize_t n = 0;
+      TEMP_FAILURE_RETRY(n, read( fd.get(), p, remaining ) );
     if (n <= 0) return false;
     p += n;
     remaining -= n;
@@ -342,7 +369,8 @@ static ssize_t pread(borrowed_fd fd, void* data, size_t byte_count, off64_t offs
 bool ReadFullyAtOffset(borrowed_fd fd, void* data, size_t byte_count, off64_t offset) {
   uint8_t* p = reinterpret_cast<uint8_t*>(data);
   while (byte_count > 0) {
-    ssize_t n = TEMP_FAILURE_RETRY(pread(fd.get(), p, byte_count, offset));
+      ssize_t n = 0;
+      TEMP_FAILURE_RETRY( n, pread( fd.get(), p, byte_count, offset ) );
     if (n <= 0) return false;
     p += n;
     byte_count -= n;
@@ -355,7 +383,8 @@ bool WriteFully(borrowed_fd fd, const void* data, size_t byte_count) {
   const uint8_t* p = reinterpret_cast<const uint8_t*>(data);
   size_t remaining = byte_count;
   while (remaining > 0) {
-    ssize_t n = TEMP_FAILURE_RETRY(write(fd.get(), p, remaining));
+      ssize_t n = 0;
+      TEMP_FAILURE_RETRY( n, write( fd.get(), p, remaining ) );
     if (n == -1) return false;
     p += n;
     remaining -= n;
@@ -364,6 +393,20 @@ bool WriteFully(borrowed_fd fd, const void* data, size_t byte_count) {
 }
 
 bool RemoveFileIfExists(const std::string& path, std::string* err) {
+#ifdef _MSC_VER
+    std::filesystem::path path_( path );
+    std::error_code err_code;
+    bool r = std::filesystem::remove( path_, err_code );
+    if( r )
+    {
+        return r;
+    }
+    else
+    {
+        *err = err_code.message();
+        return false;
+    }
+#else
   struct stat st;
 #if defined(_WIN32)
   // TODO: Windows version can't handle symbolic links correctly.
@@ -394,6 +437,7 @@ bool RemoveFileIfExists(const std::string& path, std::string* err) {
     }
   }
   return true;
+#endif
 }
 
 #if !defined(_WIN32)
@@ -456,7 +500,7 @@ std::string GetExecutablePath() {
   return path;
 #elif defined(_WIN32)
   char path[PATH_MAX + 1];
-  DWORD result = GetModuleFileName(NULL, path, sizeof(path) - 1);
+  DWORD result = GetModuleFileNameA(NULL, path, sizeof(path) - 1);
   if (result == 0 || result == sizeof(path) - 1) return "";
   path[PATH_MAX - 1] = 0;
   return path;
@@ -486,7 +530,12 @@ std::string Basename(const std::string& path) {
   // Note that if std::string uses copy-on-write strings, &str[0] will cause
   // the copy to be made, so there is no chance of us accidentally writing to
   // the storage for 'path'.
+#ifdef _MSC_VER
+  std::filesystem::path path_( path );
+  std::string name = path_.stem().string();
+#else
   char* name = basename(&result[0]);
+#endif
 
   // In case basename returned a pointer to a process global, copy that string
   // before leaving the lock.
@@ -571,7 +620,12 @@ std::string Dirname(const std::string& path) {
   // Note that if std::string uses copy-on-write strings, &str[0] will cause
   // the copy to be made, so there is no chance of us accidentally writing to
   // the storage for 'path'.
-  char* parent = dirname(&result[0]);
+#ifdef _MSC_VER
+  std::filesystem::path path_( path );
+  std::string parent = path_.stem().string();
+#else
+  char* parent = basename( &result[0] );
+#endif
 
   // In case dirname returned a pointer to a process global, copy that string
   // before leaving the lock.

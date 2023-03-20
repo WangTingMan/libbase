@@ -21,6 +21,8 @@
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
 
+#include <vector>
+
 #define LOGGER_ENTRY_MAX_PAYLOAD 4068  // This constant is not in the NDK.
 
 namespace android {
@@ -67,7 +69,10 @@ static void SplitByLogdChunks(LogId log_id, LogSeverity severity, const char* ta
   }
   int file_header_size = file_header.size();
 
-  __attribute__((uninitialized)) char logd_chunk[max_size + 1];
+  /*__attribute__((uninitialized)) char logd_chunk[max_size + 1];*/
+  std::vector<char> buffer;
+  buffer.resize( max_size + 1 );
+  char* logd_chunk = buffer.data();
   ptrdiff_t chunk_position = 0;
 
   auto call_log_function = [&]() {

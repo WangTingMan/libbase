@@ -23,7 +23,15 @@
 #include <android-base/file.h>
 #include <android-base/macros.h>
 
-class CapturedStdFd {
+#include <android-base\libbase_export.h>
+
+#ifndef STDERR_FILENO
+#define STDERR_FILENO 2
+#endif
+
+#define STDOUT_FILENO _fileno(stdout)
+
+class LIBBASE_EXPORT CapturedStdFd {
  public:
   CapturedStdFd(int std_fd);
   ~CapturedStdFd();
@@ -89,7 +97,7 @@ class CapturedStdout : public CapturedStdFd {
     }                                                                                             \
   } while (0)
 
-extern "C" void __hwasan_init() __attribute__((weak));
+extern "C" void __hwasan_init()/* __attribute__((weak))*/;
 static inline bool running_with_hwasan() {
   return &__hwasan_init != 0;
 }

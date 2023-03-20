@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#define _CRT_NONSTDC_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -22,7 +24,9 @@
 
 #include <fcntl.h>
 #include <inttypes.h>
+#ifndef _MSC_VER
 #include <libgen.h>
+#endif
 #include <time.h>
 
 // For getprogname(3) or program_invocation_short_name.
@@ -41,13 +45,18 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <filesystem>
 
 #include <android/log.h>
 #ifdef __ANDROID__
 #include <android/set_abort_message.h>
 #else
 #include <sys/types.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 #endif
 
 #include <android-base/file.h>
@@ -186,6 +195,27 @@ static int32_t LogSeverityToPriority(LogSeverity severity) {
   }
 }
 
+static android_LogPriority LogSeverityToAndroid_LogPriority(LogSeverity severity)
+{
+    switch (severity) {
+    case VERBOSE:
+        return android_LogPriority::ANDROID_LOG_VERBOSE;
+    case DEBUG:
+        return android_LogPriority::ANDROID_LOG_DEBUG;
+    case INFO:
+        return android_LogPriority::ANDROID_LOG_INFO;
+    case WARNING:
+        return android_LogPriority::ANDROID_LOG_WARN;
+    case ERROR:
+        return android_LogPriority::ANDROID_LOG_ERROR;
+    case FATAL_WITHOUT_ABORT:
+    case FATAL:
+        return android_LogPriority::ANDROID_LOG_FATAL;
+    default:
+        return android_LogPriority::ANDROID_LOG_INFO;
+    }
+}
+
 static LogFunction& Logger() {
 #ifdef __ANDROID__
   static auto& logger = *new LogFunction(LogdLogger());
@@ -209,9 +239,12 @@ static std::recursive_mutex& TagLock() {
 static std::string* gDefaultTag;
 
 void SetDefaultTag(const std::string& tag) {
+#ifndef _MSC_VER
   if (__builtin_available(android 30, *)) {
     __android_log_set_default_tag(tag.c_str());
-  } else {
+  } else 
+#endif
+  {
     std::lock_guard<std::recursive_mutex> lock(TagLock());
     if (gDefaultTag != nullptr) {
       delete gDefaultTag;
@@ -314,6 +347,11 @@ static void LogdLogChunk(LogId id, LogSeverity severity, const char* tag, const 
   int32_t lg_id = LogIdTolog_id_t(id);
   int32_t priority = LogSeverityToPriority(severity);
 
+#ifdef _MSC_VER
+  __android_log_message log_message = { sizeof( __android_log_message ),     lg_id, priority, tag,
+                                        static_cast< const char* >( nullptr ), 0,     message };
+  __android_log_logd_logger( &log_message );
+#else
   if (__builtin_available(android 30, *)) {
     __android_log_message log_message = {sizeof(__android_log_message),     lg_id, priority, tag,
                                          static_cast<const char*>(nullptr), 0,     message};
@@ -321,6 +359,7 @@ static void LogdLogChunk(LogId id, LogSeverity severity, const char* tag, const 
   } else {
     __android_log_buf_print(lg_id, priority, tag, "%s", message);
   }
+#endif
 }
 
 LogdLogger::LogdLogger(LogId default_log_id) : default_log_id_(default_log_id) {}
@@ -348,7 +387,13 @@ void InitLogging(char* argv[], LogFunction&& logger, AbortFunction&& aborter) {
   // Linux to recover this, but we don't have that luxury on the Mac/Windows,
   // and there are a couple of argv[0] variants that are commonly used.
   if (argv != nullptr) {
-    SetDefaultTag(basename(argv[0]));
+#ifdef _MSC_VER
+      std::filesystem::path path_( argv[0] );
+      std::string name = path_.stem().string();
+#else
+      char* name = basename( argv[0] );
+#endif
+    SetDefaultTag( name );
   }
 
   const char* tags = getenv("ANDROID_LOG_TAGS");
@@ -396,7 +441,10 @@ LogFunction SetLogger(LogFunction&& logger) {
   LogFunction old_logger = std::move(Logger());
   Logger() = std::move(logger);
 
-  if (__builtin_available(android 30, *)) {
+#ifndef _MSC_VER
+  if (__builtin_available(android 30, *)) 
+#endif
+  {
     __android_log_set_logger([](const struct __android_log_message* log_message) {
       auto log_id = log_id_tToLogId(log_message->buffer_id);
       auto severity = PriorityToLogSeverity(log_message->priority);
@@ -411,8 +459,10 @@ LogFunction SetLogger(LogFunction&& logger) {
 AbortFunction SetAborter(AbortFunction&& aborter) {
   AbortFunction old_aborter = std::move(Aborter());
   Aborter() = std::move(aborter);
-
-  if (__builtin_available(android 30, *)) {
+#ifndef _MSC_VER
+  if (__builtin_available(android 30, *))
+#endif
+  {
     __android_log_set_aborter([](const char* abort_message) { Aborter()(abort_message); });
   }
   return old_aborter;
@@ -500,9 +550,13 @@ LogMessage::~LogMessage() {
 
   // Abort if necessary.
   if (data_->GetSeverity() == FATAL) {
-    if (__builtin_available(android 30, *)) {
+#ifndef _MSC_VER
+    if (__builtin_available(android 30, *))
+    {
       __android_log_call_aborter(msg.c_str());
-    } else {
+    } else 
+#endif
+    {
       Aborter()(msg.c_str());
     }
   }
@@ -514,12 +568,16 @@ std::ostream& LogMessage::stream() {
 
 void LogMessage::LogLine(const char* file, unsigned int line, LogSeverity severity, const char* tag,
                          const char* message) {
+#ifdef _MSC_VER
+  __log_format(LogSeverityToAndroid_LogPriority(severity), tag, file, __FUNCTION__, line, "%s", message);
+#else
   int32_t priority = LogSeverityToPriority(severity);
   if (__builtin_available(android 30, *)) {
     __android_log_message log_message = {
         sizeof(__android_log_message), LOG_ID_DEFAULT, priority, tag, file, line, message};
     __android_log_write_log_message(&log_message);
-  } else {
+  } else
+  {
     if (tag == nullptr) {
       std::lock_guard<std::recursive_mutex> lock(TagLock());
       if (gDefaultTag == nullptr) {
@@ -531,12 +589,16 @@ void LogMessage::LogLine(const char* file, unsigned int line, LogSeverity severi
       Logger()(DEFAULT, severity, tag, file, line, message);
     }
   }
+#endif
 }
 
 LogSeverity GetMinimumLogSeverity() {
+#ifndef _MSC_VER
   if (__builtin_available(android 30, *)) {
     return PriorityToLogSeverity(__android_log_get_minimum_priority());
-  } else {
+  } else
+#endif
+  {
     return gMinimumLogSeverity;
   }
 }
@@ -545,19 +607,25 @@ bool ShouldLog(LogSeverity severity, const char* tag) {
   // Even though we're not using the R liblog functions in this function, if we're running on Q,
   // we need to fall back to using gMinimumLogSeverity, since __android_log_is_loggable() will not
   // take into consideration the value from SetMinimumLogSeverity().
+#ifndef _MSC_VER
   if (__builtin_available(android 30, *)) {
     int32_t priority = LogSeverityToPriority(severity);
     return __android_log_is_loggable(priority, tag, ANDROID_LOG_INFO);
-  } else {
+  } else
+#endif
+  {
     return severity >= gMinimumLogSeverity;
   }
 }
 
 LogSeverity SetMinimumLogSeverity(LogSeverity new_severity) {
+#ifndef _MSC_VER
   if (__builtin_available(android 30, *)) {
     int32_t priority = LogSeverityToPriority(new_severity);
     return PriorityToLogSeverity(__android_log_set_minimum_priority(priority));
-  } else {
+  } else
+#endif
+  {
     LogSeverity old_severity = gMinimumLogSeverity;
     gMinimumLogSeverity = new_severity;
     return old_severity;

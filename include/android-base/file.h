@@ -25,6 +25,8 @@
 #include "android-base/off64_t.h"
 #include "android-base/unique_fd.h"
 
+#include <android-base\libbase_export.h>
+
 #if !defined(_WIN32) && !defined(O_BINARY)
 /** Windows needs O_BINARY, but Unix never mangles line endings. */
 #define O_BINARY 0
@@ -35,7 +37,7 @@
 #define O_CLOEXEC O_NOINHERIT
 #endif
 
-class TemporaryFile {
+class LIBBASE_EXPORT TemporaryFile {
  public:
   TemporaryFile();
   explicit TemporaryFile(const std::string& tmp_dir);
@@ -58,7 +60,7 @@ class TemporaryFile {
   DISALLOW_COPY_AND_ASSIGN(TemporaryFile);
 };
 
-class TemporaryDir {
+class LIBBASE_EXPORT TemporaryDir {
  public:
   TemporaryDir();
   ~TemporaryDir();
@@ -78,13 +80,13 @@ class TemporaryDir {
 namespace android {
 namespace base {
 
-bool ReadFdToString(borrowed_fd fd, std::string* content);
-bool ReadFileToString(const std::string& path, std::string* content,
+LIBBASE_EXPORT bool ReadFdToString(borrowed_fd fd, std::string* content);
+LIBBASE_EXPORT bool ReadFileToString(const std::string& path, std::string* content,
                       bool follow_symlinks = false);
 
-bool WriteStringToFile(const std::string& content, const std::string& path,
+LIBBASE_EXPORT bool WriteStringToFile(const std::string& content, const std::string& path,
                        bool follow_symlinks = false);
-bool WriteStringToFd(const std::string& content, borrowed_fd fd);
+LIBBASE_EXPORT bool WriteStringToFd(const std::string& content, borrowed_fd fd);
 
 #if !defined(_WIN32)
 bool WriteStringToFile(const std::string& content, const std::string& path,
@@ -92,7 +94,7 @@ bool WriteStringToFile(const std::string& content, const std::string& path,
                        bool follow_symlinks = false);
 #endif
 
-bool ReadFully(borrowed_fd fd, void* data, size_t byte_count);
+LIBBASE_EXPORT bool ReadFully(borrowed_fd fd, void* data, size_t byte_count);
 
 // Reads `byte_count` bytes from the file descriptor at the specified offset.
 // Returns false if there was an IO error or EOF was reached before reading `byte_count` bytes.
@@ -102,24 +104,24 @@ bool ReadFully(borrowed_fd fd, void* data, size_t byte_count);
 // get modified. This means that ReadFullyAtOffset can be used concurrently with other calls to the
 // same function, but concurrently seeking or reading incrementally can lead to unexpected
 // behavior.
-bool ReadFullyAtOffset(borrowed_fd fd, void* data, size_t byte_count, off64_t offset);
+LIBBASE_EXPORT bool ReadFullyAtOffset(borrowed_fd fd, void* data, size_t byte_count, off64_t offset);
 
-bool WriteFully(borrowed_fd fd, const void* data, size_t byte_count);
+LIBBASE_EXPORT bool WriteFully(borrowed_fd fd, const void* data, size_t byte_count);
 
-bool RemoveFileIfExists(const std::string& path, std::string* err = nullptr);
+LIBBASE_EXPORT bool RemoveFileIfExists(const std::string& path, std::string* err = nullptr);
 
 #if !defined(_WIN32)
 bool Realpath(const std::string& path, std::string* result);
 bool Readlink(const std::string& path, std::string* result);
 #endif
 
-std::string GetExecutablePath();
-std::string GetExecutableDirectory();
+LIBBASE_EXPORT std::string GetExecutablePath();
+LIBBASE_EXPORT std::string GetExecutableDirectory();
 
 // Like the regular basename and dirname, but thread-safe on all
 // platforms and capable of correctly handling exotic Windows paths.
-std::string Basename(const std::string& path);
-std::string Dirname(const std::string& path);
+LIBBASE_EXPORT std::string Basename(const std::string& path);
+LIBBASE_EXPORT std::string Dirname(const std::string& path);
 
 }  // namespace base
 }  // namespace android

@@ -19,6 +19,8 @@
 #include <stdarg.h>
 #include <string>
 
+#include <android-base\libbase_export.h>
+
 namespace android {
 namespace base {
 
@@ -26,15 +28,15 @@ namespace base {
 // use the same attribute for compile-time format string checking.
 
 // Returns a string corresponding to printf-like formatting of the arguments.
-std::string StringPrintf(const char* fmt, ...) __attribute__((__format__(__printf__, 1, 2)));
+LIBBASE_EXPORT std::string StringPrintf(const char* fmt, ...) /*__attribute__((__format__(__printf__, 1, 2)))*/;
 
 // Appends a printf-like formatting of the arguments to 'dst'.
-void StringAppendF(std::string* dst, const char* fmt, ...)
-    __attribute__((__format__(__printf__, 2, 3)));
+LIBBASE_EXPORT void StringAppendF(std::string* dst, const char* fmt, ...)
+    /*__attribute__((__format__(__printf__, 2, 3)))*/;
 
 // Appends a printf-like formatting of the arguments to 'dst'.
-void StringAppendV(std::string* dst, const char* format, va_list ap)
-    __attribute__((__format__(__printf__, 2, 0)));
+LIBBASE_EXPORT void StringAppendV(std::string* dst, const char* format, va_list ap)
+    /*__attribute__((__format__(__printf__, 2, 0)))*/;
 
 }  // namespace base
 }  // namespace android

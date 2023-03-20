@@ -19,6 +19,8 @@
 #include <chrono>
 #include <sstream>
 
+#include <android-base\libbase_export.h>
+
 #if __cplusplus > 201103L && !defined(__WIN32)  // C++14
 using namespace std::chrono_literals;
 #endif
@@ -27,7 +29,7 @@ namespace android {
 namespace base {
 
 // A std::chrono clock based on CLOCK_BOOTTIME.
-class boot_clock {
+class LIBBASE_EXPORT boot_clock {
  public:
   typedef std::chrono::nanoseconds duration;
   typedef std::chrono::time_point<boot_clock, duration> time_point;
@@ -35,7 +37,7 @@ class boot_clock {
   static time_point now();
 };
 
-class Timer {
+class LIBBASE_EXPORT Timer {
  public:
   Timer() : start_(boot_clock::now()) {}
 
@@ -47,7 +49,7 @@ class Timer {
   boot_clock::time_point start_;
 };
 
-std::ostream& operator<<(std::ostream& os, const Timer& t);
+LIBBASE_EXPORT std::ostream& operator<<(std::ostream& os, const Timer& t);
 
 }  // namespace base
 }  // namespace android

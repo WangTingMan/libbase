@@ -16,13 +16,13 @@
 
 #pragma once
 
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 
 #include <stdio.h>
 #include <sys/types.h>
-#include <unistd.h>
+
+#include <android-base\libbase_export.h>
 
 // DO NOT INCLUDE OTHER LIBBASE HEADERS HERE!
 // This file gets used in libbinder, and libbinder is used everywhere.
@@ -97,7 +97,7 @@ class unique_fd_impl final {
 
   bool ok() const { return get() >= 0; }
 
-  int release() __attribute__((warn_unused_result)) {
+  int release() /*__attribute__((warn_unused_result))*/ {
     tag(fd_, this, nullptr);
     int ret = fd_;
     fd_ = -1;
@@ -150,7 +150,7 @@ class unique_fd_impl final {
 
 // The actual details of closing are factored out to support unusual cases.
 // Almost everyone will want this DefaultCloser, which handles fdsan on bionic.
-struct DefaultCloser {
+struct LIBBASE_EXPORT DefaultCloser {
 #if defined(__BIONIC__)
   static void Tag(int fd, void* old_addr, void* new_addr) {
     if (android_fdsan_exchange_owner_tag) {
@@ -171,13 +171,18 @@ struct DefaultCloser {
     }
   }
 #else
-  static void Close(int fd) {
-    // Even if close(2) fails with EINTR, the fd will have been closed.
-    // Using TEMP_FAILURE_RETRY will either lead to EBADF or closing someone
-    // else's fd.
-    // http://lkml.indiana.edu/hypermail/linux/kernel/0509.1/0877.html
-    ::close(fd);
-  }
+    static void Close( int fd )
+#ifndef _MSC_VER
+    {
+        // Even if close(2) fails with EINTR, the fd will have been closed.
+        // Using TEMP_FAILURE_RETRY will either lead to EBADF or closing someone
+        // else's fd.
+        // http://lkml.indiana.edu/hypermail/linux/kernel/0509.1/0877.html
+        ::close( fd );
+    }
+#else
+        ;
+#endif
 #endif
 };
 
@@ -309,14 +314,16 @@ struct borrowed_fd {
 
 template <typename T>
 int close(const android::base::unique_fd_impl<T>&)
-    __attribute__((__unavailable__("close called on unique_fd")));
+    /*__attribute__((__unavailable__("close called on unique_fd")))*/;
 
 template <typename T>
 FILE* fdopen(const android::base::unique_fd_impl<T>&, const char* mode)
-    __attribute__((__unavailable__("fdopen takes ownership of the fd passed in; either dup the "
-                                   "unique_fd, or use android::base::Fdopen to pass ownership")));
+    /*__attribute__(( __unavailable__("fdopen takes ownership of the fd passed in; either dup the "
+                                   "unique_fd, or use android::base::Fdopen to pass ownership")))*/;
 
+#ifndef _MSC_VER
 template <typename T>
-DIR* fdopendir(const android::base::unique_fd_impl<T>&) __attribute__((
+DIR* fdopendir(const android::base::unique_fd_impl<T>&) /*__attribute__((
     __unavailable__("fdopendir takes ownership of the fd passed in; either dup the "
-                    "unique_fd, or use android::base::Fdopendir to pass ownership")));
+                    "unique_fd, or use android::base::Fdopendir to pass ownership")))*/;
+#endif

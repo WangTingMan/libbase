@@ -77,7 +77,7 @@ bool GetBoolProperty(const std::string& key, bool default_value) {
     case ParseBoolResult::kTrue:
       return true;
   }
-  __builtin_unreachable();
+/*  __builtin_unreachable();*/
 }
 
 template <typename T>

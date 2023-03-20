@@ -19,12 +19,17 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <sys/user.h>
 
 #include <memory>
 
 #include <android-base/logging.h>
+
+#ifdef _MSC_VER
+
+#else
+
+#include <sys/socket.h>
+#include <sys/user.h>
 
 namespace android {
 namespace base {
@@ -173,3 +178,5 @@ ssize_t ReceiveFileDescriptorVector(borrowed_fd sockfd, void* data, size_t len, 
 
 }  // namespace base
 }  // namespace android
+
+#endif

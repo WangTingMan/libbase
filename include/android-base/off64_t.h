@@ -15,8 +15,15 @@
  */
 
 #pragma once
+#include <stdint.h>
 
 #if defined(__APPLE__)
 /** Mac OS has always had a 64-bit off_t, so it doesn't have off64_t. */
 typedef off_t off64_t;
+#else
+
+#if defined(_MSC_VER)
+typedef int64_t off64_t;
+#endif
+
 #endif

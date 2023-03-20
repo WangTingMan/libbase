@@ -18,9 +18,11 @@
 
 #include <stdint.h>
 
+#include <android-base\libbase_export.h>
+
 namespace android {
 namespace base {
-uint64_t GetThreadId();
+LIBBASE_EXPORT uint64_t GetThreadId();
 }
 }  // namespace android
 

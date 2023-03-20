@@ -22,6 +22,8 @@
 #include "android-base/strings.h"
 #include "android-base/utf8.h"
 
+#include <android-base\libbase_export.h>
+
 // A Windows error code is a DWORD. It's simpler to use an int error code for
 // both Unix and Windows if possible, but if this fails we'll need a different
 // function signature for each.

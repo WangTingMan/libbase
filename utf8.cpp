@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#define _CRT_SECURE_NO_WARNINGS
 
 #include <windows.h>
 
@@ -195,7 +196,7 @@ FILE* fopen(const char* name, const char* mode) {
   return _wfopen(name_utf16.c_str(), mode_utf16.c_str());
 }
 
-int mkdir(const char* name, mode_t) {
+int mkdir(const char* name, ...) {
   std::wstring name_utf16;
   if (!UTF8PathToWindowsLongPath(name, &name_utf16)) {
     return -1;

@@ -69,6 +69,8 @@
 #include "android-base/errno_restorer.h"
 #include "android-base/macros.h"
 
+#include <android-base\libbase_export.h>
+
 // Note: DO NOT USE DIRECTLY. Use LOG_TAG instead.
 #ifdef _LOG_TAG_INTERNAL
 #error "_LOG_TAG_INTERNAL must not be defined"
@@ -111,24 +113,24 @@ using AbortFunction = std::function<void(const char* /*abort_message*/)>;
 // Loggers for use with InitLogging/SetLogger.
 
 // Log to the kernel log (dmesg).
-void KernelLogger(LogId log_buffer_id, LogSeverity severity, const char* tag, const char* file, unsigned int line, const char* message);
+LIBBASE_EXPORT void KernelLogger(LogId log_buffer_id, LogSeverity severity, const char* tag, const char* file, unsigned int line, const char* message);
 // Log to stderr in the full logcat format (with pid/tid/time/tag details).
-void StderrLogger(LogId log_buffer_id, LogSeverity severity, const char* tag, const char* file, unsigned int line, const char* message);
+LIBBASE_EXPORT void StderrLogger(LogId log_buffer_id, LogSeverity severity, const char* tag, const char* file, unsigned int line, const char* message);
 // Log just the message to stdout/stderr (without pid/tid/time/tag details).
 // The choice of stdout versus stderr is based on the severity.
 // Errors are also prefixed by the program name (as with err(3)/error(3)).
 // Useful for replacing printf(3)/perror(3)/err(3)/error(3) in command-line tools.
-void StdioLogger(LogId log_buffer_id, LogSeverity severity, const char* tag, const char* file, unsigned int line, const char* message);
+LIBBASE_EXPORT void StdioLogger(LogId log_buffer_id, LogSeverity severity, const char* tag, const char* file, unsigned int line, const char* message);
 
-void DefaultAborter(const char* abort_message);
+LIBBASE_EXPORT void DefaultAborter(const char* abort_message);
 
-void SetDefaultTag(const std::string& tag);
+LIBBASE_EXPORT void SetDefaultTag(const std::string& tag);
 
 // The LogdLogger sends chunks of up to ~4000 bytes at a time to logd.  It does not prevent other
 // threads from writing to logd between sending each chunk, so other threads may interleave their
 // messages.  If preventing interleaving is required, then a custom logger that takes a lock before
 // calling this logger should be provided.
-class LogdLogger {
+class LIBBASE_EXPORT LogdLogger {
  public:
   explicit LogdLogger(LogId default_log_id = android::base::MAIN);
 
@@ -152,16 +154,16 @@ class LogdLogger {
 #else
 #define INIT_LOGGING_DEFAULT_LOGGER StderrLogger
 #endif
-void InitLogging(char* argv[],
+LIBBASE_EXPORT void InitLogging(char* argv[],
                  LogFunction&& logger = INIT_LOGGING_DEFAULT_LOGGER,
                  AbortFunction&& aborter = DefaultAborter);
 #undef INIT_LOGGING_DEFAULT_LOGGER
 
 // Replace the current logger and return the old one.
-LogFunction SetLogger(LogFunction&& logger);
+LIBBASE_EXPORT LogFunction SetLogger(LogFunction&& logger);
 
 // Replace the current aborter and return the old one.
-AbortFunction SetAborter(AbortFunction&& aborter);
+LIBBASE_EXPORT AbortFunction SetAborter(AbortFunction&& aborter);
 
 // A helper macro that produces an expression that accepts both a qualified name and an
 // unqualified name for a LogSeverity, and returns a LogSeverity value.
@@ -414,7 +416,7 @@ class LogMessageData;
 
 // A LogMessage is a temporarily scoped object used by LOG and the unlikely part
 // of a CHECK. The destructor will abort if the severity is FATAL.
-class LogMessage {
+class LIBBASE_EXPORT LogMessage {
  public:
   // LogId has been deprecated, but this constructor must exist for prebuilts.
   LogMessage(const char* file, unsigned int line, LogId, LogSeverity severity, const char* tag,
@@ -444,7 +446,7 @@ LogSeverity GetMinimumLogSeverity();
 LogSeverity SetMinimumLogSeverity(LogSeverity new_severity);
 
 // Return whether or not a log message with the associated tag should be logged.
-bool ShouldLog(LogSeverity severity, const char* tag);
+LIBBASE_EXPORT bool ShouldLog(LogSeverity severity, const char* tag);
 
 // Allows to temporarily change the minimum severity level for logging.
 class ScopedLogSeverity {
@@ -471,8 +473,13 @@ namespace std {  // NOLINT(cert-dcl58-cpp)
 //       -Wno-user-defined-warnings to CPPFLAGS.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgcc-compat"
+#ifndef _MSC_VER
 #define OSTREAM_STRING_POINTER_USAGE_WARNING \
     __attribute__((diagnose_if(true, "Unexpected logging of string pointer", "warning")))
+#else
+#define OSTREAM_STRING_POINTER_USAGE_WARNING
+#endif
+
 inline OSTREAM_STRING_POINTER_USAGE_WARNING
 std::ostream& operator<<(std::ostream& stream, const std::string* string_pointer) {
   return stream << static_cast<const void*>(string_pointer);

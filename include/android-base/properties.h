@@ -16,12 +16,12 @@
 
 #pragma once
 
-#include <sys/cdefs.h>
-
 #include <chrono>
 #include <limits>
 #include <optional>
 #include <string>
+
+#include <android-base\libbase_export.h>
 
 struct prop_info;
 
@@ -30,11 +30,11 @@ namespace base {
 
 // Returns the current value of the system property `key`,
 // or `default_value` if the property is empty or doesn't exist.
-std::string GetProperty(const std::string& key, const std::string& default_value);
+LIBBASE_EXPORT std::string GetProperty(const std::string& key, const std::string& default_value);
 
 // Returns true if the system property `key` has the value "1", "y", "yes", "on", or "true",
 // false for "0", "n", "no", "off", or "false", or `default_value` otherwise.
-bool GetBoolProperty(const std::string& key, bool default_value);
+LIBBASE_EXPORT bool GetBoolProperty(const std::string& key, bool default_value);
 
 // Returns the signed integer corresponding to the system property `key`.
 // If the property is empty, doesn't exist, doesn't have an integer value, or is outside
@@ -52,7 +52,7 @@ template <typename T> T GetUintProperty(const std::string& key,
                                         T max = std::numeric_limits<T>::max());
 
 // Sets the system property `key` to `value`.
-bool SetProperty(const std::string& key, const std::string& value);
+LIBBASE_EXPORT bool SetProperty(const std::string& key, const std::string& value);
 
 // Waits for the system property `key` to have the value `expected_value`.
 // Times out after `relative_timeout`.

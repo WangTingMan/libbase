@@ -16,6 +16,8 @@
 
 #pragma once
 
+#define NOMINMAX
+
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,6 +25,14 @@
 #include <limits>
 #include <string>
 #include <type_traits>
+
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
 
 namespace android {
 namespace base {
@@ -55,9 +65,12 @@ bool ParseUint(const char* s, T* out, T max = std::numeric_limits<T>::max(),
   }
   if (*end != '\0') {
     const char* suffixes = "bkmgtpe";
-    const char* suffix;
-    if ((!allow_suffixes || (suffix = strchr(suffixes, tolower(*end))) == nullptr) ||
-        __builtin_mul_overflow(result, 1ULL << (10 * (suffix - suffixes)), &result)) {
+    const char* suffix = strchr( suffixes, tolower( *end ) );
+    bool __did = 1ULL << ( 10 * ( suffix - suffixes ) ) && ( ( std::numeric_limits<unsigned long long int>::max )( ) / 1ULL << ( 10 * ( suffix - suffixes ) ) ) < result;
+    result = result * 1ULL << ( 10 * ( suffix - suffixes ) );
+
+    if ((!allow_suffixes || (suffix ) == nullptr) ||
+        __did ) {
       errno = EINVAL;
       return false;
     }

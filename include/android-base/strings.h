@@ -25,6 +25,8 @@
 #include <utility>
 #include <vector>
 
+#include <android-base\libbase_export.h>
+
 namespace android {
 namespace base {
 
@@ -33,7 +35,7 @@ namespace base {
 // The string is split at each occurrence of a character in delimiters.
 //
 // The empty string is not a valid delimiter list.
-std::vector<std::string> Split(const std::string& s,
+LIBBASE_EXPORT std::vector<std::string> Split(const std::string& s,
                                const std::string& delimiters);
 
 // Splits a string into a vector of string tokens.
@@ -48,7 +50,7 @@ std::vector<std::string> Split(const std::string& s,
 //   Join(Tokenize("  foo  bar", " "), " ") => "foo bar"
 //
 // The empty string is not a valid delimiter list.
-std::vector<std::string> Tokenize(const std::string& s, const std::string& delimiters);
+LIBBASE_EXPORT std::vector<std::string> Tokenize(const std::string& s, const std::string& delimiters);
 
 namespace internal {
 template <typename>
@@ -86,12 +88,16 @@ std::string Trim(T&& t) {
 }
 
 // We instantiate the common cases in strings.cpp.
+#ifdef _MSC_VER
+LIBBASE_EXPORT std::string Trim(const std::string&);
+#else
 extern template std::string Trim(const char*&);
 extern template std::string Trim(const char*&&);
 extern template std::string Trim(const std::string&);
 extern template std::string Trim(const std::string&&);
 extern template std::string Trim(std::string_view&);
 extern template std::string Trim(std::string_view&&);
+#endif
 
 // Joins a container of things into a single string, using the given separator.
 template <typename ContainerT, typename SeparatorT>
@@ -108,24 +114,18 @@ std::string Join(const ContainerT& things, SeparatorT separator) {
   return result.str();
 }
 
-// We instantiate the common cases in strings.cpp.
-extern template std::string Join(const std::vector<std::string>&, char);
-extern template std::string Join(const std::vector<const char*>&, char);
-extern template std::string Join(const std::vector<std::string>&, const std::string&);
-extern template std::string Join(const std::vector<const char*>&, const std::string&);
-
 // Tests whether 's' starts with 'prefix'.
-bool StartsWith(std::string_view s, std::string_view prefix);
-bool StartsWith(std::string_view s, char prefix);
-bool StartsWithIgnoreCase(std::string_view s, std::string_view prefix);
+LIBBASE_EXPORT bool StartsWith(std::string_view s, std::string_view prefix);
+LIBBASE_EXPORT bool StartsWith(std::string_view s, char prefix);
+LIBBASE_EXPORT bool StartsWithIgnoreCase(std::string_view s, std::string_view prefix);
 
 // Tests whether 's' ends with 'suffix'.
-bool EndsWith(std::string_view s, std::string_view suffix);
-bool EndsWith(std::string_view s, char suffix);
-bool EndsWithIgnoreCase(std::string_view s, std::string_view suffix);
+LIBBASE_EXPORT bool EndsWith(std::string_view s, std::string_view suffix);
+LIBBASE_EXPORT bool EndsWith(std::string_view s, char suffix);
+LIBBASE_EXPORT bool EndsWithIgnoreCase(std::string_view s, std::string_view suffix);
 
 // Tests whether 'lhs' equals 'rhs', ignoring case.
-bool EqualsIgnoreCase(std::string_view lhs, std::string_view rhs);
+LIBBASE_EXPORT bool EqualsIgnoreCase(std::string_view lhs, std::string_view rhs);
 
 // Removes `prefix` from the start of the given string and returns true (if
 // it was present), false otherwise.
@@ -145,11 +145,11 @@ inline bool ConsumeSuffix(std::string_view* s, std::string_view suffix) {
 
 // Replaces `from` with `to` in `s`, once if `all == false`, or as many times as
 // there are matches if `all == true`.
-[[nodiscard]] std::string StringReplace(std::string_view s, std::string_view from,
+[[nodiscard]] LIBBASE_EXPORT std::string StringReplace(std::string_view s, std::string_view from,
                                         std::string_view to, bool all);
 
 // Converts an errno number to its error message string.
-std::string ErrnoNumberAsString(int errnum);
+LIBBASE_EXPORT std::string ErrnoNumberAsString(int errnum);
 
 }  // namespace base
 }  // namespace android
