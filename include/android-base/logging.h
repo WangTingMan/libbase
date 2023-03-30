@@ -440,16 +440,16 @@ class LIBBASE_EXPORT LogMessage {
 };
 
 // Get the minimum severity level for logging.
-LogSeverity GetMinimumLogSeverity();
+LIBBASE_EXPORT LogSeverity GetMinimumLogSeverity();
 
 // Set the minimum severity level for logging, returning the old severity.
-LogSeverity SetMinimumLogSeverity(LogSeverity new_severity);
+LIBBASE_EXPORT LogSeverity SetMinimumLogSeverity(LogSeverity new_severity);
 
 // Return whether or not a log message with the associated tag should be logged.
 LIBBASE_EXPORT bool ShouldLog(LogSeverity severity, const char* tag);
 
 // Allows to temporarily change the minimum severity level for logging.
-class ScopedLogSeverity {
+class LIBBASE_EXPORT ScopedLogSeverity {
  public:
   explicit ScopedLogSeverity(LogSeverity level);
   ~ScopedLogSeverity();

@@ -259,7 +259,7 @@ void SetDefaultTag(const std::string& tag) {
 static bool gInitialized = false;
 
 // Only used for Q fallback.
-static LogSeverity gMinimumLogSeverity = INFO;
+static LogSeverity gMinimumLogSeverity = VERBOSE;
 
 #if defined(__linux__)
 static void KernelLogLine(const char* msg, int length, android::base::LogSeverity severity,
