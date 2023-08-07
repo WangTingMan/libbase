@@ -343,6 +343,7 @@ class _NODISCARD_ expected {
   constexpr const E&& error() const&& { return std::move(std::get<unexpected_type>(var_)).value(); }
   constexpr E&& error() && { return std::move(std::get<unexpected_type>(var_)).value(); }
 
+#ifndef _MSC_VER
   template<class U _ENABLE_IF(
     std::is_copy_constructible_v<T> &&
     std::is_convertible_v<U, T>
@@ -351,6 +352,7 @@ class _NODISCARD_ expected {
     if (has_value()) return value();
     else return static_cast<T>(std::forward<U>(v));
   }
+#endif
 
   template<class U _ENABLE_IF(
     std::is_move_constructible_v<T> &&
