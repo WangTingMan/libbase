@@ -88,6 +88,7 @@ T GetIntProperty(const std::string& key, T default_value, T min, T max) {
   return default_value;
 }
 
+#ifndef _MSC_VER
 template <typename T>
 T GetUintProperty(const std::string& key, T default_value, T max) {
   T result;
@@ -95,6 +96,7 @@ T GetUintProperty(const std::string& key, T default_value, T max) {
   if (!value.empty() && android::base::ParseUint(value, &result, max)) return result;
   return default_value;
 }
+#endif
 
 template int8_t GetIntProperty(const std::string&, int8_t, int8_t, int8_t);
 template int16_t GetIntProperty(const std::string&, int16_t, int16_t, int16_t);

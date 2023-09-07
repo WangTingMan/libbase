@@ -21,6 +21,8 @@
 #include <optional>
 #include <string>
 
+#include <android-base\parseint.h>
+
 #include <android-base\libbase_export.h>
 
 struct prop_info;
@@ -47,9 +49,20 @@ template <typename T> T GetIntProperty(const std::string& key,
 // Returns the unsigned integer corresponding to the system property `key`.
 // If the property is empty, doesn't exist, doesn't have an integer value, or is outside
 // the optional bound, returns `default_value`.
+#ifdef _MSC_VER
+template <typename T>
+T GetUintProperty( const std::string& key, T default_value, T max )
+{
+    T result;
+    std::string value = GetProperty( key, "" );
+    if( !value.empty() && android::base::ParseUint( value, &result, max ) ) return result;
+    return default_value;
+}
+#else
 template <typename T> T GetUintProperty(const std::string& key,
                                         T default_value,
                                         T max = std::numeric_limits<T>::max());
+#endif
 
 // Sets the system property `key` to `value`.
 LIBBASE_EXPORT bool SetProperty(const std::string& key, const std::string& value);
