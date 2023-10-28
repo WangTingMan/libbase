@@ -32,35 +32,18 @@
 #include <android-base/parseint.h>
 #include <android-base/strings.h>
 
+#include <cutils/properties.h>
+
 #if !defined(__BIONIC__)
 
 #define PROP_VALUE_MAX 92
 
-static std::map<std::string, std::string>& g_properties = *new std::map<std::string, std::string>;
-
-int __system_property_set(const char* key, const char* value) {
-  if (key == nullptr || *key == '\0') return -1;
-  if (value == nullptr) value = "";
-
-  bool read_only = !strncmp(key, "ro.", 3);
-  if (read_only) {
-    const auto [it, success] = g_properties.insert({key, value});
-    return success ? 0 : -1;
-  }
-
-  if (strlen(value) >= 92) return -1;
-  g_properties[key] = value;
-  return 0;
+inline int __system_property_set(const char* key, const char* value) {
+  return property_set( key, value );
 }
 
-int __system_property_get(const char* key, char* value) {
-  auto it = g_properties.find(key);
-  if (it == g_properties.end()) {
-    *value = '\0';
-    return 0;
-  }
-  snprintf(value, PROP_VALUE_MAX, "%s", it->second.c_str());
-  return strlen(value);
+inline int __system_property_get(const char* key, char* value) {
+  return property_get( key, value, "" );
 }
 
 #endif
@@ -121,10 +104,11 @@ std::string GetProperty(const std::string& key, const std::string& default_value
                                   },
                                   &property_value);
 #else
-  // TODO: implement host __system_property_find()/__system_property_read_callback()?
-  auto it = g_properties.find(key);
-  if (it == g_properties.end()) return default_value;
-  property_value = it->second;
+  char buffer[PROP_VALUE_MAX+1] = { 0x00 };
+  property_get( key.c_str(), buffer, default_value.c_str() );
+  std::string ret_value;
+  ret_value.assign( buffer );
+  return ret_value;
 #endif
   // If the property exists but is empty, also return the default value.
   // Since we can't remove system properties, "empty" is traditionally
