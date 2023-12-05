@@ -370,6 +370,13 @@ void LogdLogger::operator()(LogId id, LogSeverity severity, const char* tag, con
     id = default_log_id_;
   }
 
+#ifdef _MSC_VER
+  int32_t lg_id = LogIdTolog_id_t( id );
+  int32_t priority = LogSeverityToPriority( severity );
+  __android_log_print_ext( (android_LogPriority)( priority ), tag, file, line, message );
+  return;
+#endif
+
   SplitByLogdChunks(id, severity, tag, file, line, message, LogdLogChunk);
 }
 
@@ -569,7 +576,7 @@ std::ostream& LogMessage::stream() {
 void LogMessage::LogLine(const char* file, unsigned int line, LogSeverity severity, const char* tag,
                          const char* message) {
 #ifdef _MSC_VER
-  __log_format(LogSeverityToAndroid_LogPriority(severity), tag, file, __FUNCTION__, line, "%s", message);
+    __android_log_print_ext(LogSeverityToAndroid_LogPriority(severity), tag, file, line, "%s", message);
 #else
   int32_t priority = LogSeverityToPriority(severity);
   if (__builtin_available(android 30, *)) {
