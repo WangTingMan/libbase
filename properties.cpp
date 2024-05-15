@@ -63,6 +63,7 @@ bool GetBoolProperty(const std::string& key, bool default_value) {
 /*  __builtin_unreachable();*/
 }
 
+#ifndef _MSC_VER
 template <typename T>
 T GetIntProperty(const std::string& key, T default_value, T min, T max) {
   T result;
@@ -70,6 +71,7 @@ T GetIntProperty(const std::string& key, T default_value, T min, T max) {
   if (!value.empty() && android::base::ParseInt(value, &result, min, max)) return result;
   return default_value;
 }
+#endif
 
 #ifndef _MSC_VER
 template <typename T>

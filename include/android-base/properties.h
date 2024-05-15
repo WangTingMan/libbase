@@ -41,10 +41,23 @@ LIBBASE_EXPORT bool GetBoolProperty(const std::string& key, bool default_value);
 // Returns the signed integer corresponding to the system property `key`.
 // If the property is empty, doesn't exist, doesn't have an integer value, or is outside
 // the optional bounds, returns `default_value`.
+#ifdef _MSC_VER
+template <typename T> T GetIntProperty( const std::string& key,
+                                        T default_value,
+                                        T min = std::numeric_limits<T>::min(),
+                                        T max = std::numeric_limits<T>::max() )
+{
+    T result;
+    std::string value = GetProperty( key, "" );
+    if( !value.empty() && android::base::ParseInt( value, &result, min, max ) ) return result;
+    return default_value;
+}
+#else
 template <typename T> T GetIntProperty(const std::string& key,
                                        T default_value,
                                        T min = std::numeric_limits<T>::min(),
                                        T max = std::numeric_limits<T>::max());
+#endif
 
 // Returns the unsigned integer corresponding to the system property `key`.
 // If the property is empty, doesn't exist, doesn't have an integer value, or is outside
