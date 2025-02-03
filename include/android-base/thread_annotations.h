@@ -18,7 +18,11 @@
 
 #include <mutex>
 
+#ifdef _MSC_VER
+#define THREAD_ANNOTATION_ATTRIBUTE__(x)
+#else
 #define THREAD_ANNOTATION_ATTRIBUTE__(x) __attribute__((x))
+#endif
 
 #define CAPABILITY(x) \
       THREAD_ANNOTATION_ATTRIBUTE__(capability(x))
