@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,14 @@
  * limitations under the License.
  */
 
-#pragma once
+#include "android-base/result.h"
 
-// We include fmtlib here as an alias, since libbase will have fmtlib statically linked already.
-// It is accessed through its normal fmt:: namespace.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wshadow"
-#include <fmt/chrono.h>
-#pragma clang diagnostic pop
-#include <fmt/core.h>
-#include <fmt/format.h>
-#include <fmt/printf.h>
-#include <fmt/ranges.h>
+namespace android {
+namespace base {
 
-#ifndef _WIN32
-#include <fmt/ostream.h>
-#include <fmt/std.h>
-#endif  // _WIN32
+ResultError<Errno> MakeResultErrorWithCode(std::string&& message, Errno code) {
+  return ResultError(std::move(message) + ": " + code.print(), code);
+}
+
+}  // namespace base
+}  // namespace android

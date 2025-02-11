@@ -241,11 +241,25 @@ bool ReadFdToString(borrowed_fd fd, std::string* content) {
   // very large files too, where the std::string growth heuristics might not
   // be suitable. https://code.google.com/p/android/issues/detail?id=258500.
   struct stat sb;
-  if (fstat(fd.get(), &sb) != -1 && sb.st_size > 0) {
-    content->reserve(sb.st_size);
+  if (fstat(fd.get(), &sb) != -1 && sb.st_size > 0 && sb.st_size <= SSIZE_MAX) {
+    // Shrink the string capacity to fit the file, but if the capacity is only
+    // slightly larger than needed, avoid reallocating. std::string::reserve no
+    // longer lowers capacity after P0966R1, but it does round the request up a
+    // small amount (e.g. 8 or 16 bytes).
+    size_t fd_size = sb.st_size;
+    if (fd_size > content->capacity()) {
+      content->reserve(fd_size);
+    } else if (fd_size < content->capacity() && content->capacity() - fd_size >= 64) {
+      content->shrink_to_fit();
+      content->reserve(fd_size);
+    }
   }
 
+<<<<<<< HEAD
   char buf[BUFSIZ] /*__attribute__((__uninitialized__))*/;
+=======
+  char buf[4096] __attribute__((__uninitialized__));
+>>>>>>> b53532a
   ssize_t n;
   TEMP_FAILURE_RETRY( n, read( fd.get(), &buf[0], sizeof( buf ) ) );
   while ( n > 0 ) {
@@ -268,7 +282,7 @@ bool ReadFileToString(const std::string& path, std::string* content, bool follow
   return ReadFdToString(fd, content);
 }
 
-bool WriteStringToFd(const std::string& content, borrowed_fd fd) {
+bool WriteStringToFd(std::string_view content, borrowed_fd fd) {
   const char* p = content.data();
   size_t left = content.size();
   while (left > 0) {
@@ -338,9 +352,18 @@ bool ReadFully(borrowed_fd fd, void* data, size_t byte_count) {
   uint8_t* p = reinterpret_cast<uint8_t*>(data);
   size_t remaining = byte_count;
   while (remaining > 0) {
+<<<<<<< HEAD
       ssize_t n = 0;
       TEMP_FAILURE_RETRY(n, read( fd.get(), p, remaining ) );
     if (n <= 0) return false;
+=======
+    ssize_t n = TEMP_FAILURE_RETRY(read(fd.get(), p, remaining));
+    if (n == 0) {  // EOF
+      errno = ENODATA;
+      return false;
+    }
+    if (n == -1) return false;
+>>>>>>> b53532a
     p += n;
     remaining -= n;
   }
@@ -364,16 +387,53 @@ static ssize_t pread(borrowed_fd fd, void* data, size_t byte_count, off64_t offs
   }
   return static_cast<ssize_t>(bytes_read);
 }
+
+static ssize_t pwrite(borrowed_fd fd, const void* data, size_t byte_count, off64_t offset) {
+  DWORD bytes_written;
+  OVERLAPPED overlapped;
+  memset(&overlapped, 0, sizeof(OVERLAPPED));
+  overlapped.Offset = static_cast<DWORD>(offset);
+  overlapped.OffsetHigh = static_cast<DWORD>(offset >> 32);
+  if (!WriteFile(reinterpret_cast<HANDLE>(_get_osfhandle(fd.get())), data,
+                 static_cast<DWORD>(byte_count), &bytes_written, &overlapped)) {
+    // In case someone tries to read errno (since this is masquerading as a POSIX call)
+    errno = EIO;
+    return -1;
+  }
+  return static_cast<ssize_t>(bytes_written);
+}
 #endif
 
 bool ReadFullyAtOffset(borrowed_fd fd, void* data, size_t byte_count, off64_t offset) {
   uint8_t* p = reinterpret_cast<uint8_t*>(data);
   while (byte_count > 0) {
+<<<<<<< HEAD
       ssize_t n = 0;
       TEMP_FAILURE_RETRY( n, pread( fd.get(), p, byte_count, offset ) );
     if (n <= 0) return false;
+=======
+    ssize_t n = TEMP_FAILURE_RETRY(pread(fd.get(), p, byte_count, offset));
+    if (n == 0) {  // EOF
+      errno = ENODATA;
+      return false;
+    }
+    if (n == -1) return false;
+>>>>>>> b53532a
     p += n;
     byte_count -= n;
+    offset += n;
+  }
+  return true;
+}
+
+bool WriteFullyAtOffset(borrowed_fd fd, const void* data, size_t byte_count, off64_t offset) {
+  const uint8_t* p = reinterpret_cast<const uint8_t*>(data);
+  size_t remaining = byte_count;
+  while (remaining > 0) {
+    ssize_t n = TEMP_FAILURE_RETRY(pwrite(fd.get(), p, remaining, offset));
+    if (n == -1) return false;
+    p += n;
+    remaining -= n;
     offset += n;
   }
   return true;
@@ -504,6 +564,8 @@ std::string GetExecutablePath() {
   if (result == 0 || result == sizeof(path) - 1) return "";
   path[PATH_MAX - 1] = 0;
   return path;
+#elif defined(__EMSCRIPTEN__)
+  abort();
 #else
 #error unknown OS
 #endif
@@ -514,7 +576,7 @@ std::string GetExecutableDirectory() {
 }
 
 #if defined(_WIN32)
-std::string Basename(const std::string& path) {
+std::string Basename(std::string_view path) {
   // TODO: how much of this is actually necessary for mingw?
 
   // Copy path because basename may modify the string passed in.
@@ -545,21 +607,21 @@ std::string Basename(const std::string& path) {
 }
 #else
 // Copied from bionic so that Basename() below can be portable and thread-safe.
-static int __basename_r(const char* path, char* buffer, size_t buffer_size) {
+static int _basename_r(const char* path, size_t path_size, char* buffer, size_t buffer_size) {
   const char* startp = nullptr;
   const char* endp = nullptr;
   int len;
   int result;
 
   // Empty or NULL string gets treated as ".".
-  if (path == nullptr || *path == '\0') {
+  if (path == nullptr || path_size == 0) {
     startp = ".";
     len = 1;
     goto Exit;
   }
 
   // Strip trailing slashes.
-  endp = path + strlen(path) - 1;
+  endp = path + path_size - 1;
   while (endp > path && *endp == '/') {
     endp--;
   }
@@ -596,15 +658,15 @@ static int __basename_r(const char* path, char* buffer, size_t buffer_size) {
   }
   return result;
 }
-std::string Basename(const std::string& path) {
-  char buf[PATH_MAX];
-  __basename_r(path.c_str(), buf, sizeof(buf));
-  return buf;
+std::string Basename(std::string_view path) {
+  char buf[PATH_MAX] __attribute__((__uninitialized__));
+  const auto size = _basename_r(path.data(), path.size(), buf, sizeof(buf));
+  return size > 0 ? std::string(buf, size) : std::string();
 }
 #endif
 
 #if defined(_WIN32)
-std::string Dirname(const std::string& path) {
+std::string Dirname(std::string_view path) {
   // TODO: how much of this is actually necessary for mingw?
 
   // Copy path because dirname may modify the string passed in.
@@ -635,20 +697,20 @@ std::string Dirname(const std::string& path) {
 }
 #else
 // Copied from bionic so that Dirname() below can be portable and thread-safe.
-static int __dirname_r(const char* path, char* buffer, size_t buffer_size) {
+static int _dirname_r(const char* path, size_t path_size, char* buffer, size_t buffer_size) {
   const char* endp = nullptr;
   int len;
   int result;
 
   // Empty or NULL string gets treated as ".".
-  if (path == nullptr || *path == '\0') {
+  if (path == nullptr || path_size == 0) {
     path = ".";
     len = 1;
     goto Exit;
   }
 
   // Strip trailing slashes.
-  endp = path + strlen(path) - 1;
+  endp = path + path_size - 1;
   while (endp > path && *endp == '/') {
     endp--;
   }
@@ -693,10 +755,10 @@ static int __dirname_r(const char* path, char* buffer, size_t buffer_size) {
   }
   return result;
 }
-std::string Dirname(const std::string& path) {
-  char buf[PATH_MAX];
-  __dirname_r(path.c_str(), buf, sizeof(buf));
-  return buf;
+std::string Dirname(std::string_view path) {
+  char buf[PATH_MAX] __attribute__((__uninitialized__));
+  const auto size = _dirname_r(path.data(), path.size(), buf, sizeof(buf));
+  return size > 0 ? std::string(buf, size) : std::string();
 }
 #endif
 

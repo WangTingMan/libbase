@@ -18,6 +18,7 @@
 
 #include <chrono>
 #include <limits>
+#include <mutex>
 #include <optional>
 #include <string>
 
@@ -101,16 +102,27 @@ bool WaitForPropertyCreation(const std::string& key, std::chrono::milliseconds r
 // this class helps optimize those lookups.
 class CachedProperty {
  public:
+  explicit CachedProperty(std::string property_name);
+
+  // Kept for ABI compatibility.
   explicit CachedProperty(const char* property_name);
 
   // Returns the current value of the underlying system property as cheaply as possible.
   // The returned pointer is valid until the next call to Get. Because most callers are going
-  // to want to parse the string returned here and cached that as well, this function performs
+  // to want to parse the string returned here and cache that as well, this function performs
   // no locking, and is completely thread unsafe. It is the caller's responsibility to provide a
   // lock for thread-safety.
   //
   // Note: *changed can be set to true even if the contents of the property remain the same.
   const char* Get(bool* changed = nullptr);
+
+  // Waits for the property to be changed and then reads its value.
+  // Times out returning nullptr, after `relative_timeout`
+  //
+  // Note: this can return the same value multiple times in a row if the property was set to the
+  // same value or if multiple changes happened before the current thread was resumed.
+  const char* WaitForChange(
+      std::chrono::milliseconds relative_timeout = std::chrono::milliseconds::max());
 
  private:
   std::string property_name_;
@@ -121,6 +133,55 @@ class CachedProperty {
   bool is_read_only_;
   const char* read_only_property_;
 };
+
+// Helper class for passing the output of CachedProperty to a parser function, and then caching
+// that as well.
+template <typename Parser>
+class CachedParsedProperty {
+ public:
+  using value_type = std::remove_reference_t<std::invoke_result_t<Parser, const char*>>;
+
+  CachedParsedProperty(std::string property_name, Parser parser)
+      : cached_property_(std::move(property_name)), parser_(std::move(parser)) {}
+
+  // Returns the parsed value.
+  // This function is internally-synchronized, so use from multiple threads is safe (but ordering
+  // of course cannot be guaranteed without external synchronization).
+  value_type Get(bool* changed = nullptr) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    bool local_changed = false;
+    const char* value = cached_property_.Get(&local_changed);
+    if (!cached_result_ || local_changed) {
+      cached_result_ = parser_(value);
+    }
+
+    if (changed) *changed = local_changed;
+    return *cached_result_;
+  }
+
+ private:
+  std::mutex mutex_;
+  CachedProperty cached_property_;
+  std::optional<value_type> cached_result_;
+
+  Parser parser_;
+};
+
+// Helper for CachedParsedProperty that uses android::base::ParseBool.
+class CachedBoolProperty {
+ public:
+  explicit CachedBoolProperty(std::string property_name);
+
+  // Returns the parsed bool, or std::nullopt if it wasn't set or couldn't be parsed.
+  std::optional<bool> GetOptional();
+
+  // Returns the parsed bool, or default_value if it wasn't set or couldn't be parsed.
+  bool Get(bool default_value);
+
+ private:
+  CachedParsedProperty<std::optional<bool> (*)(const char*)> cached_parsed_property_;
+};
+
 #endif
 
 static inline int HwTimeoutMultiplier() {
@@ -135,4 +196,10 @@ static inline int HwTimeoutMultiplier() {
 extern "C" int __system_property_set(const char*, const char*);
 /** Implementation detail. */
 extern "C" int __system_property_get(const char*, char*);
+/** Implementation detail. */
+extern "C" const prop_info* __system_property_find(const char*);
+/** Implementation detail. */
+extern "C" void __system_property_read_callback(const prop_info*,
+                                                void (*)(void*, const char*, const char*, uint32_t),
+                                                void*);
 #endif

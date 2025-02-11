@@ -26,18 +26,19 @@ namespace base {
 template <typename F>
 class ScopeGuard {
  public:
-  constexpr ScopeGuard(F&& f) : f_(std::forward<F>(f)), active_(true) {}
+  constexpr ScopeGuard(F f) : f_(std::move(f)), active_(true) {}
 
   constexpr ScopeGuard(ScopeGuard&& that) noexcept : f_(std::move(that.f_)), active_(that.active_) {
     that.active_ = false;
   }
 
   template <typename Functor>
-  constexpr ScopeGuard(ScopeGuard<Functor>&& that) : f_(std::move(that.f_)), active_(that.active_) {
+  constexpr ScopeGuard(ScopeGuard<Functor>&& that) noexcept
+      : f_(std::move(that.f_)), active_(that.active_) {
     that.active_ = false;
   }
 
-  ~ScopeGuard() {
+  ~ScopeGuard() noexcept(noexcept(f_())) {
     if (active_) f_();
   }
 
@@ -46,9 +47,9 @@ class ScopeGuard {
   void operator=(const ScopeGuard&) = delete;
   void operator=(ScopeGuard&& that) = delete;
 
-  void Disable() { active_ = false; }
+  void Disable() noexcept { active_ = false; }
 
-  constexpr bool active() const { return active_; }
+  constexpr bool active() const noexcept { return active_; }
 
  private:
   template <typename Functor>
@@ -59,8 +60,8 @@ class ScopeGuard {
 };
 
 template <typename F>
-ScopeGuard<F> make_scope_guard(F&& f) {
-  return ScopeGuard<F>(std::forward<F>(f));
+auto make_scope_guard(F&& f) {
+  return ScopeGuard<std::remove_reference_t<F>>(std::forward<F>(f));
 }
 
 }  // namespace base

@@ -131,7 +131,7 @@ void UNUSED(const T&...) {
 // In either case this macro has no effect on runtime behavior and performance
 // of code.
 #ifndef FALLTHROUGH_INTENDED
-#define FALLTHROUGH_INTENDED [[clang::fallthrough]]  // NOLINT
+#define FALLTHROUGH_INTENDED [[fallthrough]]  // NOLINT
 #endif
 
 // Current ABI string
@@ -141,6 +141,8 @@ void UNUSED(const T&...) {
 #define ABI_STRING "arm64"
 #elif defined(__i386__)
 #define ABI_STRING "x86"
+#elif defined(__riscv)
+#define ABI_STRING "riscv64"
 #elif defined(__x86_64__)
 #define ABI_STRING "x86_64"
 #endif

@@ -16,6 +16,8 @@
 
 #include "android-base/process.h"
 
+#include <stdlib.h>
+
 namespace android {
 namespace base {
 

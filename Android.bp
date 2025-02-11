@@ -15,6 +15,7 @@
 //
 
 package {
+    default_team: "trendy_team_native_tools_libraries",
     default_applicable_licenses: ["system_libbase_license"],
 }
 
@@ -41,6 +42,11 @@ cc_defaults {
         android: {
             cflags: [
                 "-D_FILE_OFFSET_BITS=64",
+            ],
+        },
+        windows: {
+            cflags: [
+                "-D_POSIX_THREAD_SAFE_FUNCTIONS",
             ],
         },
     },
@@ -73,6 +79,7 @@ cc_library_headers {
         "//apex_available:platform",
     ],
     min_sdk_version: "29",
+    sdk_version: "current",
 }
 
 cc_defaults {
@@ -91,6 +98,7 @@ cc_defaults {
         "posix_strerror_r.cpp",
         "process.cpp",
         "properties.cpp",
+        "result.cpp",
         "stringprintf.cpp",
         "strings.cpp",
         "threads.cpp",
@@ -143,10 +151,7 @@ cc_library {
     recovery_available: true,
     host_supported: true,
     native_bridge_supported: true,
-    vndk: {
-        enabled: true,
-        support_system_process: true,
-    },
+    double_loadable: true,
     header_libs: [
         "libbase_headers",
     ],
@@ -166,6 +171,10 @@ cc_library_static {
     stl: "c++_static",
     export_include_dirs: ["include"],
     whole_static_libs: ["fmtlib_ndk"],
+    apex_available: [
+        "//apex_available:platform",
+        "com.android.mediaprovider",
+    ],
 }
 
 // Tests
@@ -283,7 +292,11 @@ cc_benchmark {
     name: "libbase_benchmark",
     defaults: ["libbase_cflags_defaults"],
 
-    srcs: ["format_benchmark.cpp"],
+    srcs: [
+        "file_benchmark.cpp",
+        "format_benchmark.cpp",
+        "function_ref_benchmark.cpp",
+    ],
     shared_libs: ["libbase"],
 
     compile_multilib: "both",
@@ -308,6 +321,12 @@ cc_fuzz {
         cc: [
             "android-bionic@google.com",
         ],
-        componentid: 128577
-    }
+        componentid: 128577,
+    },
+}
+
+dirgroup {
+    name: "trusty_dirgroup_system_libbase",
+    dirs: ["."],
+    visibility: ["//trusty/vendor/google/aosp/scripts"],
 }

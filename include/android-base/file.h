@@ -86,7 +86,11 @@ LIBBASE_EXPORT bool ReadFileToString(const std::string& path, std::string* conte
 
 LIBBASE_EXPORT bool WriteStringToFile(const std::string& content, const std::string& path,
                        bool follow_symlinks = false);
+<<<<<<< HEAD
 LIBBASE_EXPORT bool WriteStringToFd(const std::string& content, borrowed_fd fd);
+=======
+bool WriteStringToFd(std::string_view content, borrowed_fd fd);
+>>>>>>> b53532a
 
 #if !defined(_WIN32)
 bool WriteStringToFile(const std::string& content, const std::string& path,
@@ -106,7 +110,12 @@ LIBBASE_EXPORT bool ReadFully(borrowed_fd fd, void* data, size_t byte_count);
 // behavior.
 LIBBASE_EXPORT bool ReadFullyAtOffset(borrowed_fd fd, void* data, size_t byte_count, off64_t offset);
 
+<<<<<<< HEAD
 LIBBASE_EXPORT bool WriteFully(borrowed_fd fd, const void* data, size_t byte_count);
+=======
+bool WriteFully(borrowed_fd fd, const void* data, size_t byte_count);
+bool WriteFullyAtOffset(borrowed_fd fd, const void* data, size_t byte_count, off64_t offset);
+>>>>>>> b53532a
 
 LIBBASE_EXPORT bool RemoveFileIfExists(const std::string& path, std::string* err = nullptr);
 
@@ -120,8 +129,13 @@ LIBBASE_EXPORT std::string GetExecutableDirectory();
 
 // Like the regular basename and dirname, but thread-safe on all
 // platforms and capable of correctly handling exotic Windows paths.
+<<<<<<< HEAD
 LIBBASE_EXPORT std::string Basename(const std::string& path);
 LIBBASE_EXPORT std::string Dirname(const std::string& path);
+=======
+std::string Basename(std::string_view path);
+std::string Dirname(std::string_view path);
+>>>>>>> b53532a
 
 }  // namespace base
 }  // namespace android

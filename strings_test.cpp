@@ -193,6 +193,10 @@ TEST(strings, join_separator_in_vector) {
   ASSERT_EQ(",,,", android::base::Join(list, ','));
 }
 
+TEST(strings, join_single_int) {
+  ASSERT_EQ("42", android::base::Join(std::vector{42}, ','));
+}
+
 TEST(strings, join_simple_ints) {
   std::set<int> list = {1, 2, 3};
   ASSERT_EQ("1,2,3", android::base::Join(list, ','));

@@ -98,22 +98,28 @@
 class ScopedSilentDeath {
  public:
   ScopedSilentDeath() {
+#if !defined(_WIN32)
     for (int signo : SUPPRESSED_SIGNALS) {
       struct sigaction64 action = {.sa_handler = SIG_DFL};
       sigaction64(signo, &action, &previous_);
     }
+#endif
   }
 
   ~ScopedSilentDeath() {
+#if !defined(_WIN32)
     for (int signo : SUPPRESSED_SIGNALS) {
       sigaction64(signo, &previous_, nullptr);
     }
+#endif
   }
 
  private:
+#if !defined(_WIN32)
   static constexpr std::array<int, 4> SUPPRESSED_SIGNALS = {SIGABRT, SIGBUS, SIGSEGV, SIGSYS};
 
   struct sigaction64 previous_;
+#endif
 };
 
 class SilentDeathTest : public testing::Test {

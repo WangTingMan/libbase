@@ -26,6 +26,7 @@
 #include <string>
 #include <type_traits>
 
+<<<<<<< HEAD
 #ifdef max
 #undef max
 #endif
@@ -33,6 +34,9 @@
 #ifdef min
 #undef min
 #endif
+=======
+#define LIBBASE_ALWAYS_INLINE __attribute__((__always_inline__))
+>>>>>>> b53532a
 
 namespace android {
 namespace base {
@@ -42,8 +46,8 @@ namespace base {
 // a 'max' beyond which otherwise valid values will be rejected. Returns boolean
 // success; 'out' is untouched if parsing fails.
 template <typename T>
-bool ParseUint(const char* s, T* out, T max = std::numeric_limits<T>::max(),
-               bool allow_suffixes = false) {
+LIBBASE_ALWAYS_INLINE bool ParseUint(const char* s, T* out, T max = std::numeric_limits<T>::max(),
+                                     bool allow_suffixes = false) {
   static_assert(std::is_unsigned<T>::value, "ParseUint can only be used with unsigned types");
   while (isspace(*s)) {
     s++;
@@ -54,6 +58,9 @@ bool ParseUint(const char* s, T* out, T max = std::numeric_limits<T>::max(),
     return false;
   }
 
+  // This is never out of bounds. If string is zero-sized, s[0] == '\0'
+  // so the second condition is not checked. If string is "0",
+  // s[1] will compare against the '\0'.
   int base = (s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) ? 16 : 10;
   errno = 0;
   char* end;
@@ -87,19 +94,22 @@ bool ParseUint(const char* s, T* out, T max = std::numeric_limits<T>::max(),
 
 // TODO: string_view
 template <typename T>
-bool ParseUint(const std::string& s, T* out, T max = std::numeric_limits<T>::max(),
-               bool allow_suffixes = false) {
+LIBBASE_ALWAYS_INLINE bool ParseUint(const std::string& s, T* out,
+                                     T max = std::numeric_limits<T>::max(),
+                                     bool allow_suffixes = false) {
   return ParseUint(s.c_str(), out, max, allow_suffixes);
 }
 
 template <typename T>
-bool ParseByteCount(const char* s, T* out, T max = std::numeric_limits<T>::max()) {
+LIBBASE_ALWAYS_INLINE bool ParseByteCount(const char* s, T* out,
+                                          T max = std::numeric_limits<T>::max()) {
   return ParseUint(s, out, max, true);
 }
 
 // TODO: string_view
 template <typename T>
-bool ParseByteCount(const std::string& s, T* out, T max = std::numeric_limits<T>::max()) {
+LIBBASE_ALWAYS_INLINE bool ParseByteCount(const std::string& s, T* out,
+                                          T max = std::numeric_limits<T>::max()) {
   return ParseByteCount(s.c_str(), out, max);
 }
 
@@ -108,9 +118,8 @@ bool ParseByteCount(const std::string& s, T* out, T max = std::numeric_limits<T>
 // a 'min' and 'max' beyond which otherwise valid values will be rejected. Returns
 // boolean success; 'out' is untouched if parsing fails.
 template <typename T>
-bool ParseInt(const char* s, T* out,
-              T min = std::numeric_limits<T>::min(),
-              T max = std::numeric_limits<T>::max()) {
+LIBBASE_ALWAYS_INLINE bool ParseInt(const char* s, T* out, T min = std::numeric_limits<T>::min(),
+                                    T max = std::numeric_limits<T>::max()) {
   static_assert(std::is_signed<T>::value, "ParseInt can only be used with signed types");
   while (isspace(*s)) {
     s++;
@@ -139,11 +148,13 @@ bool ParseInt(const char* s, T* out,
 
 // TODO: string_view
 template <typename T>
-bool ParseInt(const std::string& s, T* out,
-              T min = std::numeric_limits<T>::min(),
-              T max = std::numeric_limits<T>::max()) {
+LIBBASE_ALWAYS_INLINE bool ParseInt(const std::string& s, T* out,
+                                    T min = std::numeric_limits<T>::min(),
+                                    T max = std::numeric_limits<T>::max()) {
   return ParseInt(s.c_str(), out, min, max);
 }
 
 }  // namespace base
 }  // namespace android
+
+#undef LIBBASE_ALWAYS_INLINE

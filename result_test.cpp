@@ -246,6 +246,26 @@ TEST(result, constructor_forwarding) {
   EXPECT_EQ("aaaaa", *result);
 }
 
+TEST(result, unwrap_or_do) {
+  bool v = UNWRAP_OR_DO(res, Result<bool>(false), FAIL() << "Should not be reached");
+  EXPECT_FALSE(v);
+
+  []() -> void {
+    UNWRAP_OR_DO(res, Result<bool>(ResultError("foo", 17)), {
+      EXPECT_EQ(res.error().message(), "foo");
+      EXPECT_EQ(res.error().code(), 17);
+      return;
+    });
+    FAIL() << "Should not be reached";
+  }();
+}
+
+TEST(result, unwrap_or_assert_fail) {
+  bool s = OR_ASSERT_FAIL(Result<bool>(true));
+  EXPECT_TRUE(s);
+  // NB: There's no (stable) way to test that an assertion failed, so cannot test the error case.
+}
+
 TEST(result, unwrap_or_return) {
   auto f = [](bool success) -> Result<size_t, CustomError> {
     return OR_RETURN(success_or_fail(success)).size();
