@@ -23,6 +23,7 @@
 #include <android-base/stringprintf.h>
 
 #include <vector>
+#include <utils\Timers.h>
 
 #define LOGGER_ENTRY_MAX_PAYLOAD 4068  // This constant is not in the NDK.
 

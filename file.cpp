@@ -27,9 +27,9 @@
 #include <sys/types.h>
 
 #ifndef _MSC_VER
-#include <unistd.h> 
+#include <unistd.h>
 #include <ftw.h>
-#include <libgen.h> 
+#include <libgen.h>
 #include <sys/param.h>
 #endif
 
@@ -61,6 +61,8 @@
 #ifndef PATH_MAX
 #define PATH_MAX 256
 #endif
+
+#define SSIZE_MAX LONG_MAX 
 
 #include "android-base/logging.h"  // and must be after windows.h for ERROR
 #include "android-base/macros.h"   // For TEMP_FAILURE_RETRY on Darwin.
@@ -255,11 +257,7 @@ bool ReadFdToString(borrowed_fd fd, std::string* content) {
     }
   }
 
-<<<<<<< HEAD
-  char buf[BUFSIZ] /*__attribute__((__uninitialized__))*/;
-=======
-  char buf[4096] __attribute__((__uninitialized__));
->>>>>>> b53532a
+  char buf[4096]/* __attribute__((__uninitialized__))*/;
   ssize_t n;
   TEMP_FAILURE_RETRY( n, read( fd.get(), &buf[0], sizeof( buf ) ) );
   while ( n > 0 ) {
@@ -352,18 +350,13 @@ bool ReadFully(borrowed_fd fd, void* data, size_t byte_count) {
   uint8_t* p = reinterpret_cast<uint8_t*>(data);
   size_t remaining = byte_count;
   while (remaining > 0) {
-<<<<<<< HEAD
-      ssize_t n = 0;
-      TEMP_FAILURE_RETRY(n, read( fd.get(), p, remaining ) );
-    if (n <= 0) return false;
-=======
-    ssize_t n = TEMP_FAILURE_RETRY(read(fd.get(), p, remaining));
+    ssize_t n = 0;
+    TEMP_FAILURE_RETRY(n, read( fd.get(), p, remaining ) );
     if (n == 0) {  // EOF
       errno = ENODATA;
       return false;
     }
-    if (n == -1) return false;
->>>>>>> b53532a
+    if (n <= 0) return false;
     p += n;
     remaining -= n;
   }
@@ -407,18 +400,13 @@ static ssize_t pwrite(borrowed_fd fd, const void* data, size_t byte_count, off64
 bool ReadFullyAtOffset(borrowed_fd fd, void* data, size_t byte_count, off64_t offset) {
   uint8_t* p = reinterpret_cast<uint8_t*>(data);
   while (byte_count > 0) {
-<<<<<<< HEAD
-      ssize_t n = 0;
-      TEMP_FAILURE_RETRY( n, pread( fd.get(), p, byte_count, offset ) );
-    if (n <= 0) return false;
-=======
-    ssize_t n = TEMP_FAILURE_RETRY(pread(fd.get(), p, byte_count, offset));
+    ssize_t n = 0;
+    TEMP_FAILURE_RETRY( n, pread( fd.get(), p, byte_count, offset ) );
     if (n == 0) {  // EOF
       errno = ENODATA;
       return false;
     }
-    if (n == -1) return false;
->>>>>>> b53532a
+    if (n <= 0) return false;
     p += n;
     byte_count -= n;
     offset += n;
@@ -430,7 +418,8 @@ bool WriteFullyAtOffset(borrowed_fd fd, const void* data, size_t byte_count, off
   const uint8_t* p = reinterpret_cast<const uint8_t*>(data);
   size_t remaining = byte_count;
   while (remaining > 0) {
-    ssize_t n = TEMP_FAILURE_RETRY(pwrite(fd.get(), p, remaining, offset));
+    ssize_t n = 0;
+    TEMP_FAILURE_RETRY(n, pwrite(fd.get(), p, remaining, offset));
     if (n == -1) return false;
     p += n;
     remaining -= n;

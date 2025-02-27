@@ -26,17 +26,7 @@
 #include <string>
 #include <type_traits>
 
-<<<<<<< HEAD
-#ifdef max
-#undef max
-#endif
-
-#ifdef min
-#undef min
-#endif
-=======
-#define LIBBASE_ALWAYS_INLINE __attribute__((__always_inline__))
->>>>>>> b53532a
+#define LIBBASE_ALWAYS_INLINE
 
 namespace android {
 namespace base {

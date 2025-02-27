@@ -267,9 +267,10 @@ static bool gInitialized = false;
 // Only used for Q fallback.
 static LogSeverity gMinimumLogSeverity = VERBOSE;
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(_MSC_VER)
 static void KernelLogLine(const char* msg, int length, android::base::LogSeverity severity,
                           const char* tag) {
+#ifndef _MSC_VER
   // clang-format off
   static constexpr int kLogSeverityToKernelLogLevel[] = {
       [android::base::VERBOSE] = 7,              // KERN_DEBUG (there is no verbose kernel log
@@ -306,6 +307,7 @@ static void KernelLogLine(const char* msg, int length, android::base::LogSeverit
         level, tag, truncated, size);
     TEMP_FAILURE_RETRY(write(klog_fd, buf, std::min(size, sizeof(buf))));
   }
+#endif
 }
 
 void KernelLogger(android::base::LogId, android::base::LogSeverity severity, const char* tag,

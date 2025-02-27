@@ -52,14 +52,6 @@
 
 #define PROP_VALUE_MAX 92
 
-<<<<<<< HEAD
-inline int __system_property_set(const char* key, const char* value) {
-  return property_set( key, value );
-}
-
-inline int __system_property_get(const char* key, char* value) {
-  return property_get( key, value, "" );
-=======
 struct prop_info {
   std::string key;
   mutable std::string value;
@@ -79,6 +71,9 @@ static auto& g_properties_lock = *new std::mutex;
 static auto& g_properties GUARDED_BY(g_properties_lock) = *new std::set<prop_info, prop_info_cmp>;
 
 SYSPROP_WEAK int __system_property_set(const char* key, const char* value) {
+#ifdef _MSC_VER
+  return property_set( key, value );
+#else
   if (key == nullptr || *key == '\0') return -1;
   if (value == nullptr) value = "";
   bool read_only = !strncmp(key, "ro.", 3);
@@ -92,9 +87,13 @@ SYSPROP_WEAK int __system_property_set(const char* key, const char* value) {
     ++it->serial;
   }
   return 0;
+#endif
 }
 
 SYSPROP_WEAK int __system_property_get(const char* key, char* value) {
+#ifdef _MSC_VER
+  return property_get( key, value, "" );
+#else
   std::lock_guard lock(g_properties_lock);
   auto it = g_properties.find(key);
   if (it == g_properties.end()) {
@@ -103,10 +102,13 @@ SYSPROP_WEAK int __system_property_get(const char* key, char* value) {
   }
   snprintf(value, PROP_VALUE_MAX, "%s", it->value.c_str());
   return strlen(value);
->>>>>>> b53532a
+#endif
 }
 
 SYSPROP_WEAK const prop_info* __system_property_find(const char* key) {
+#ifdef _MSC_VER
+  return nullptr;
+#else
   std::lock_guard lock(g_properties_lock);
   auto it = g_properties.find(key);
   if (it == g_properties.end()) {
@@ -114,6 +116,7 @@ SYSPROP_WEAK const prop_info* __system_property_find(const char* key) {
   } else {
     return &*it;
   }
+#endif
 }
 
 SYSPROP_WEAK void __system_property_read_callback(const prop_info* pi,
@@ -172,25 +175,17 @@ template uint32_t GetUintProperty(const std::string&, uint32_t, uint32_t);
 template uint64_t GetUintProperty(const std::string&, uint64_t, uint64_t);
 
 std::string GetProperty(const std::string& key, const std::string& default_value) {
-  std::string property_value;
-  const prop_info* pi = __system_property_find(key.c_str());
-  if (pi == nullptr) return default_value;
-
-<<<<<<< HEAD
-  __system_property_read_callback(pi,
-                                  [](void* cookie, const char*, const char* value, unsigned) {
-                                    auto property_value = reinterpret_cast<std::string*>(cookie);
-                                    *property_value = value;
-                                  },
-                                  &property_value);
-#else
+#ifdef _MSC_VER
   char buffer[PROP_VALUE_MAX+1] = { 0x00 };
   property_get( key.c_str(), buffer, default_value.c_str() );
   std::string ret_value;
   ret_value.assign( buffer );
   return ret_value;
-#endif
-=======
+#else
+  std::string property_value;
+  const prop_info* pi = __system_property_find(key.c_str());
+  if (pi == nullptr) return default_value;
+
   __system_property_read_callback(
       pi,
       [](void* cookie, const char*, const char* value, unsigned) {
@@ -198,11 +193,11 @@ std::string GetProperty(const std::string& key, const std::string& default_value
         *property_value = value;
       },
       &property_value);
->>>>>>> b53532a
   // If the property exists but is empty, also return the default value.
   // Since we can't remove system properties, "empty" is traditionally
   // the same as "missing" (this was true for cutils' property_get).
   return property_value.empty() ? default_value : property_value;
+#endif
 }
 
 bool SetProperty(const std::string& key, const std::string& value) {

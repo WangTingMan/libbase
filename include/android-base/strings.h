@@ -29,7 +29,7 @@
 #include <utility>
 #include <vector>
 
-#include <android-base\libbase_export.h>
+#include <android-base/libbase_export.h>
 
 namespace android {
 namespace base {
@@ -93,14 +93,14 @@ std::string Trim(T&& t) {
 
 // We instantiate the common cases in strings.cpp.
 #ifdef _MSC_VER
-LIBBASE_EXPORT std::string Trim(const std::string&);
+LIBBASE_EXPORT std::string Trim( const std::string& );
 #else
-extern template std::string Trim(const char*&);
-extern template std::string Trim(const char*&&);
-extern template std::string Trim(const std::string&);
-extern template std::string Trim(const std::string&&);
-extern template std::string Trim(std::string_view&);
-extern template std::string Trim(std::string_view&&);
+extern template std::string Trim( const char*& );
+extern template std::string Trim( const char*&& );
+extern template std::string Trim( const std::string& );
+extern template std::string Trim( const std::string&& );
+extern template std::string Trim( std::string_view& );
+extern template std::string Trim( std::string_view&& );
 #endif
 
 // Joins a container of things into a single string, using the given separator.
@@ -164,23 +164,20 @@ std::string Join(ContainerT&& things, SeparatorT separator) {
   }
 }
 
-<<<<<<< HEAD
-=======
 // These cases were measured either to be used during build by more than one binary, or during
 // runtime as a significant portion of total calls.
 // Instantiate them in strings.cpp to aid compile time and binary size.
-extern template std::string Join(std::vector<std::string>&, char);
-extern template std::string Join(std::vector<std::string>&, const char*);
-extern template std::string Join(std::vector<std::string>&&, const char*);
-extern template std::string Join(const std::vector<std::string>&, char);
-extern template std::string Join(const std::vector<std::string>&, const char*);
-extern template std::string Join(const std::vector<std::string>&&, const char*);
-extern template std::string Join(std::set<std::string>&, const char*);
-extern template std::string Join(const std::set<std::string>&, char);
-extern template std::string Join(const std::set<std::string>&, const char*);
-extern template std::string Join(const std::unordered_set<std::string>&, const char*);
+extern template LIBBASE_EXPORT std::string Join(std::vector<std::string>&, char);
+extern template LIBBASE_EXPORT std::string Join(std::vector<std::string>&, const char*);
+extern template LIBBASE_EXPORT std::string Join(std::vector<std::string>&&, const char*);
+extern template LIBBASE_EXPORT std::string Join(const std::vector<std::string>&, char);
+extern template LIBBASE_EXPORT std::string Join(const std::vector<std::string>&, const char*);
+extern template LIBBASE_EXPORT std::string Join(const std::vector<std::string>&&, const char*);
+extern template LIBBASE_EXPORT std::string Join(std::set<std::string>&, const char*);
+extern template LIBBASE_EXPORT std::string Join(const std::set<std::string>&, char);
+extern template LIBBASE_EXPORT std::string Join(const std::set<std::string>&, const char*);
+extern template LIBBASE_EXPORT std::string Join(const std::unordered_set<std::string>&, const char*);
 
->>>>>>> b53532a
 // Tests whether 's' starts with 'prefix'.
 LIBBASE_EXPORT bool StartsWith(std::string_view s, std::string_view prefix);
 LIBBASE_EXPORT bool StartsWith(std::string_view s, char prefix);

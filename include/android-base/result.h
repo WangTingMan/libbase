@@ -299,7 +299,7 @@ inline E ErrorCode(E code, T&& t, const Args&... args) {
   return ErrorCode(code, args...);
 }
 
-__attribute__((noinline)) ResultError<Errno> MakeResultErrorWithCode(std::string&& message,
+/*__attribute__((noinline))*/ ResultError<Errno> MakeResultErrorWithCode(std::string&& message,
                                                                      Errno code);
 
 template <typename... Args>

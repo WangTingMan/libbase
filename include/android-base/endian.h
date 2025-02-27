@@ -19,7 +19,9 @@
 /* A cross-platform equivalent of bionic's <sys/endian.h>. */
 
 /* For __BIONIC__ and __GLIBC__ */
+#if __has_include(<sys/cdefs.h>)
 #include <sys/cdefs.h>
+#endif
 
 #if defined(__BIONIC__)
 
@@ -54,7 +56,9 @@
 #include <sys/_endian.h>
 #else
 /* Windows has some of the basics as well. */
+#if __has_include(<sys/param.h>)
 #include <sys/param.h>
+#endif
 #include <winsock2.h>
 /* winsock2.h *must* be included before the following four macros. */
 #define htons(x) __builtin_bswap16(x)
